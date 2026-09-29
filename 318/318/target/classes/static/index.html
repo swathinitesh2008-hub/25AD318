@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ParkSmart</title>
+
+  <link rel="stylesheet" href="style.css">
+
+  <!-- Enhancement styles (toasts, empty states, disabled buttons). Your style.css is untouched. -->
+  <style>
+    #toastBox{position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:10px}
+    .toast{padding:12px 18px;border-radius:10px;color:#fff;font-size:14px;box-shadow:0 6px 18px rgba(0,0,0,.2);
+      background:#2563eb;opacity:0;transform:translateY(-8px);transition:.25s}
+    .toast.show{opacity:1;transform:none}
+    .toast.success{background:#16a34a}
+    .toast.error{background:#dc2626}
+    .empty-row td{text-align:center;color:#888;padding:18px}
+    .primary-btn:disabled{opacity:.6;cursor:not-allowed}
+    .nav-btn:focus-visible,.primary-btn:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid #2563eb;outline-offset:2px}
+    .online.offline{color:#dc2626}
+    @media (prefers-reduced-motion:reduce){.toast{transition:none}}
+  </style>
+</head>
+
+<body>
+
+<div id="toastBox" role="status" aria-live="polite"></div>
+
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+
+    <div class="logo">
+      <span>Park</span><strong>Smart</strong>
+    </div>
+
+    <nav>
+
+      <button onclick="showSection('dashboard')" class="nav-btn active">
+        🏠 Dashboard
+      </button>
+
+      <button onclick="showSection('parkingLots')" class="nav-btn">
+        🅿️ Parking Lots
+      </button>
+
+      <button onclick="showSection('slots')" class="nav-btn">
+        🚗 Parking Slots
+      </button>
+
+      <button onclick="showSection('booking')" class="nav-btn">
+        🗓️ Book Slot
+      </button>
+
+      <button onclick="showSection('checkInOut')" class="nav-btn">
+        🚘 Check In / Out
+      </button>
+
+      <button onclick="showSection('bookings')" class="nav-btn">
+        📋 Bookings
+      </button>
+
+    </nav>
+
+  </aside>
+
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- HEADER -->
+    <header class="header">
+
+      <div>
+        <h1>ParkSmart</h1>
+        <p>Smart Parking Management System</p>
+      </div>
+
+      <div class="online" id="systemStatus">
+        ● System Online
+      </div>
+
+    </header>
+
+
+    <!-- ================= DASHBOARD ================= -->
+
+    <section id="dashboard" class="section active">
+
+      <div class="cards">
+
+        <div class="card">
+          <h3>Total Parking Lots</h3>
+          <div id="totalLots" class="number">0</div>
+        </div>
+
+        <div class="card">
+          <h3>Total Slots</h3>
+          <div id="totalSlots" class="number">0</div>
+        </div>
+
+        <div class="card">
+          <h3>Available Slots</h3>
+          <div id="availableSlots" class="number green">0</div>
+        </div>
+
+        <div class="card">
+          <h3>Occupied Slots</h3>
+          <div id="occupiedSlots" class="number red">0</div>
+        </div>
+
+      </div>
+
+
+      <div class="welcome-box">
+
+        <h2>Welcome to ParkSmart 🚗</h2>
+
+        <p>
+          Manage parking lots, parking slots, bookings
+          and vehicle check-in/check-out from one place.
+        </p>
+
+      </div>
+
+    </section>
+
+
+    <!-- ================= PARKING LOTS ================= -->
+
+    <section id="parkingLots" class="section">
+
+      <div class="section-title">
+        <h2>Parking Lots</h2>
+        <p>Add and view parking lots.</p>
+      </div>
+
+
+      <div class="form-card">
+
+        <h2>Add Parking Lot</h2>
+
+        <form onsubmit="addParkingLot(event)">
+
+          <div class="form-grid">
+
+            <div class="input-group">
+              <label for="lotName">Name</label>
+              <input type="text" id="lotName" placeholder="Parking lot name" required>
+            </div>
+
+            <div class="input-group">
+              <label for="lotLocation">Location</label>
+              <input type="text" id="lotLocation" placeholder="Location" required>
+            </div>
+
+            <div class="input-group">
+              <label for="lotTotalSlot">Total Slots</label>
+              <input type="number" id="lotTotalSlot" min="1" placeholder="Total slots" required>
+            </div>
+
+          </div>
+
+          <button type="submit" class="primary-btn">
+            Add Parking Lot
+          </button>
+
+        </form>
+
+      </div>
+
+
+      <div class="table-card">
+
+        <h2>Parking Lot List</h2>
+
+        <table>
+          <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Location</th>
+            <th>Total Slots</th>
+          </tr>
+          </thead>
+
+          <tbody id="parkingLotTable"></tbody>
+        </table>
+
+      </div>
+
+    </section>
+
+
+    <!-- ================= SLOTS ================= -->
+
+    <section id="slots" class="section">
+
+      <div class="section-title">
+        <h2>Parking Slots</h2>
+        <p>Create and manage parking slots.</p>
+      </div>
+
+
+      <div class="form-card">
+
+        <h2>Add Parking Slot</h2>
+
+        <form onsubmit="addSlot(event)">
+
+          <div class="form-grid">
+
+            <div class="input-group">
+              <label for="slotNumber">Slot Number</label>
+              <input type="number" id="slotNumber" min="1" required>
+            </div>
+
+            <div class="input-group">
+              <label for="slotStatus">Status</label>
+              <select id="slotStatus">
+                <option value="AVAILABLE">AVAILABLE</option>
+                <option value="OCCUPIED">OCCUPIED</option>
+              </select>
+            </div>
+
+            <div class="input-group">
+              <label for="slotParkingID">Parking ID</label>
+              <input type="number" id="slotParkingID" min="1" required>
+            </div>
+
+          </div>
+
+          <button type="submit" class="primary-btn">
+            Add Slot
+          </button>
+
+        </form>
+
+      </div>
+
+
+      <div class="table-card">
+
+        <h2>Slot List</h2>
+
+        <table>
+          <thead>
+          <tr>
+            <th>ID</th>
+            <th>Slot Number</th>
+            <th>Status</th>
+            <th>Parking ID</th>
+          </tr>
+          </thead>
+
+          <tbody id="slotTable"></tbody>
+        </table>
+
+      </div>
+
+    </section>
+
+
+    <!-- ================= BOOKING ================= -->
+
+    <section id="booking" class="section">
+
+      <div class="section-title">
+        <h2>Book Parking Slot</h2>
+        <p>Create a new parking booking.</p>
+      </div>
+
+
+      <div class="form-card">
+
+        <h2>Booking Details</h2>
+
+        <form onsubmit="createBooking(event)">
+
+          <div class="form-grid">
+
+            <div class="input-group">
+              <label for="vehicleNumber">Vehicle Number</label>
+              <input type="text" id="vehicleNumber" placeholder="TN14SW1805" required>
+            </div>
+
+            <div class="input-group">
+              <label for="bookingParkingID">Parking ID</label>
+              <input type="number" id="bookingParkingID" min="1" placeholder="1" required>
+            </div>
+
+            <div class="input-group">
+              <label for="bookingSlotID">Parking Slot ID</label>
+              <input type="number" id="bookingSlotID" min="1" placeholder="1" required>
+            </div>
+
+            <div class="input-group">
+              <label for="startTime">Start Time</label>
+              <input type="number" id="startTime" min="0" max="24" placeholder="10" required>
+            </div>
+
+            <div class="input-group">
+              <label for="endTime">End Time</label>
+              <input type="number" id="endTime" min="0" max="24" placeholder="12" required>
+            </div>
+
+            <div class="input-group">
+              <label for="bookingStatus">Status</label>
+              <select id="bookingStatus">
+                <option value="CONFIRMED">CONFIRMED</option>
+                <option value="PENDING">PENDING</option>
+                <option value="CANCELLED">CANCELLED</option>
+              </select>
+            </div>
+
+          </div>
+
+          <button type="submit" class="primary-btn">
+            Book Parking Slot
+          </button>
+
+        </form>
+
+      </div>
+
+    </section>
+
+
+    <!-- ================= CHECK IN / OUT ================= -->
+
+    <section id="checkInOut" class="section">
+
+      <div class="section-title">
+        <h2>Check In / Check Out</h2>
+        <p>Record vehicle entry and exit details.</p>
+      </div>
+
+
+      <div class="form-card">
+
+        <h2>Check In / Out Details</h2>
+
+        <form onsubmit="createCheckInOut(event)">
+
+          <div class="form-grid">
+
+            <div class="input-group">
+              <label for="checkBookingID">Booking ID</label>
+              <input type="number" id="checkBookingID" min="1" required>
+            </div>
+
+            <div class="input-group">
+              <label for="checkStartTime">Start Time</label>
+              <input type="number" id="checkStartTime" min="0" max="24" required>
+            </div>
+
+            <div class="input-group">
+              <label for="checkEndTime">End Time</label>
+              <input type="number" id="checkEndTime" min="0" max="24" required>
+            </div>
+
+            <div class="input-group">
+              <label for="overStay">Over Stay</label>
+              <input type="number" id="overStay" value="0" min="0" required>
+            </div>
+
+            <div class="input-group">
+              <label for="penalty">Penalty</label>
+              <input type="number" id="penalty" value="0" min="0" required>
+            </div>
+
+          </div>
+
+          <button type="submit" class="primary-btn">
+            Save Check In / Out
+          </button>
+
+        </form>
+
+      </div>
+
+    </section>
+
+
+    <!-- ================= BOOKINGS ================= -->
+
+    <section id="bookings" class="section">
+
+      <div class="section-title">
+        <h2>Bookings</h2>
+        <p>View all parking bookings.</p>
+      </div>
+
+
+      <div class="table-card">
+
+        <h2>Booking List</h2>
+
+        <table>
+          <thead>
+          <tr>
+            <th>ID</th>
+            <th>Vehicle</th>
+            <th>Parking ID</th>
+            <th>Slot ID</th>
+            <th>Start Time</th>
+            <th>End Time</th>
+            <th>Status</th>
+          </tr>
+          </thead>
+
+          <tbody id="bookingTable"></tbody>
+        </table>
+
+      </div>
+
+    </section>
+
+  </main>
+
+</div>
+
+
+<script>
+
+  const API_URL = "http://localhost:8080";
+
+  const $ = id => document.getElementById(id);
+
+
+  /* ================= HELPERS ================= */
+
+  // Prevents broken layout / XSS when values contain < > & " '
+  function esc(value) {
+    return String(value ?? "").replace(/[&<>"']/g, ch => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    }[ch]));
+  }
+
+  // Non-blocking notification (replaces alert)
+  function toast(message, type = "info") {
+    const el = document.createElement("div");
+    el.className = `toast ${type}`;
+    el.textContent = message;
+    $("toastBox").appendChild(el);
+    requestAnimationFrame(() => el.classList.add("show"));
+    setTimeout(() => {
+      el.classList.remove("show");
+      setTimeout(() => el.remove(), 300);
+    }, 3500);
+  }
+
+  // One place for every request: JSON headers, error text, network errors
+  async function api(path, options = {}) {
+    let response;
+
+    try {
+      response = await fetch(`${API_URL}${path}`, options);
+    } catch (networkError) {
+      setOnline(false);
+      throw new Error("Cannot reach the server. Is the backend running on " + API_URL + "?");
+    }
+
+    setOnline(true);
+
+    if (!response.ok) {
+      const text = await response.text().catch(() => "");
+      throw new Error(text || `Request failed (${response.status})`);
+    }
+
+    const type = response.headers.get("content-type") || "";
+    return type.includes("application/json") ? response.json() : null;
+  }
+
+  function postJSON(path, data) {
+    return api(path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    });
+  }
+
+  // Header indicator reflects real backend status
+  function setOnline(isOnline) {
+    const el = $("systemStatus");
+    el.textContent = isOnline ? "● System Online" : "● System Offline";
+    el.classList.toggle("offline", !isOnline);
+  }
+
+  // Disables the submit button while a request is running (no double submits)
+  async function withSubmitLock(event, task) {
+    event.preventDefault();
+    const form = event.target;
+    const button = form.querySelector('button[type="submit"]');
+    const label = button.textContent;
+
+    button.disabled = true;
+    button.textContent = "Saving...";
+
+    try {
+      await task(form);
+    } finally {
+      button.disabled = false;
+      button.textContent = label;
+    }
+  }
+
+  function renderRows(tableId, rows, columns, rowBuilder) {
+    const table = $(tableId);
+
+    if (!Array.isArray(rows) || rows.length === 0) {
+      table.innerHTML =
+              `<tr class="empty-row"><td colspan="${columns}">No records yet.</td></tr>`;
+      return;
+    }
+
+    table.innerHTML = rows.map(rowBuilder).join("");
+  }
+
+  // Accepts either "ID" or "id" style keys from the backend
+  const pick = (obj, key) => obj[key] ?? obj[key.toLowerCase()];
+
+
+  /* ================= NAVIGATION ================= */
+
+  function showSection(sectionId) {
+
+    document.querySelectorAll(".section").forEach(section => {
+      section.classList.remove("active");
+    });
+
+    $(sectionId).classList.add("active");
+
+    document.querySelectorAll(".nav-btn").forEach(button => {
+      button.classList.toggle(
+              "active",
+              button.getAttribute("onclick") === `showSection('${sectionId}')`
+      );
+    });
+
+    const loaders = {
+      dashboard: loadDashboard,
+      parkingLots: loadParkingLots,
+      slots: loadSlots,
+      bookings: loadBookings
+    };
+
+    if (loaders[sectionId]) loaders[sectionId]();
+
+  }
+
+
+  /* ================= PARKING LOT ================= */
+
+  function addParkingLot(event) {
+    return withSubmitLock(event, async form => {
+
+      const data = {
+        Name: $("lotName").value.trim(),
+        Location: $("lotLocation").value.trim(),
+        TotalSlot: Number($("lotTotalSlot").value)
+      };
+
+      if (!data.Name || !data.Location) {
+        toast("Name and location cannot be empty.", "error");
+        return;
+      }
+
+      try {
+        await postJSON("/parkinglots", data);
+        toast("Parking lot created successfully!", "success");
+        form.reset();
+        loadParkingLots();
+        loadDashboard();
+      } catch (error) {
+        console.error(error);
+        toast(`Could not create parking lot. ${error.message}`, "error");
+      }
+
+    });
+  }
+
+
+  async function loadParkingLots() {
+
+    try {
+      const lots = await api("/parkinglots");
+
+      renderRows("parkingLotTable", lots, 4, lot => `
+        <tr>
+          <td>${esc(pick(lot, "ID"))}</td>
+          <td>${esc(pick(lot, "Name"))}</td>
+          <td>${esc(pick(lot, "Location"))}</td>
+          <td>${esc(pick(lot, "TotalSlot"))}</td>
+        </tr>`);
+
+    } catch (error) {
+      console.error(error);
+      toast("Could not load parking lots.", "error");
+    }
+
+  }
+
+
+  /* ================= SLOTS ================= */
+
+  function addSlot(event) {
+    return withSubmitLock(event, async form => {
+
+      const data = {
+        SlotNumber: Number($("slotNumber").value),
+        Status: $("slotStatus").value,
+        ParkingID: Number($("slotParkingID").value)
+      };
+
+      try {
+        await postJSON("/slots", data);
+        toast("Parking slot created successfully!", "success");
+        form.reset();
+        loadSlots();
+        loadDashboard();
+      } catch (error) {
+        console.error(error);
+        toast(`Could not create parking slot. ${error.message}`, "error");
+      }
+
+    });
+  }
+
+
+  async function loadSlots() {
+
+    try {
+      const slots = await api("/slots");
+
+      renderRows("slotTable", slots, 4, slot => `
+        <tr>
+          <td>${esc(pick(slot, "ID"))}</td>
+          <td>${esc(pick(slot, "SlotNumber"))}</td>
+          <td>
+            <span class="status ${esc(String(slot.Status).toLowerCase())}">
+              ${esc(slot.Status)}
+            </span>
+          </td>
+          <td>${esc(pick(slot, "ParkingID"))}</td>
+        </tr>`);
+
+    } catch (error) {
+      console.error(error);
+      toast("Could not load slots.", "error");
+    }
+
+  }
+
+
+  /* ================= BOOKING ================= */
+
+  /*
+      IMPORTANT:
+      Your working backend endpoint is:
+
+      POST http://localhost:8080/Booking
+
+      Notice the capital B.
+  */
+
+  function createBooking(event) {
+    return withSubmitLock(event, async form => {
+
+      const data = {
+        VehicleNumber: $("vehicleNumber").value.trim().toUpperCase(),
+        ParkingID: Number($("bookingParkingID").value),
+        SlotID: Number($("bookingSlotID").value),
+        StartTime: Number($("startTime").value),
+        EndTime: Number($("endTime").value),
+        Status: $("bookingStatus").value
+      };
+
+      if (data.EndTime <= data.StartTime) {
+        toast("End time must be later than start time.", "error");
+        return;
+      }
+
+      try {
+        await postJSON("/Booking", data);
+        toast("Booking created successfully!", "success");
+        form.reset();
+        loadBookings();
+        loadDashboard();
+      } catch (error) {
+        console.error("Booking error:", error);
+        toast(`Could not create booking. ${error.message}`, "error");
+      }
+
+    });
+  }
+
+
+  /* ================= LOAD BOOKINGS ================= */
+
+  async function loadBookings() {
+
+    try {
+      const bookings = await api("/Booking");
+
+      renderRows("bookingTable", bookings, 7, booking => `
+        <tr>
+          <td>${esc(pick(booking, "ID"))}</td>
+          <td>${esc(booking.VehicleNumber)}</td>
+          <td>${esc(booking.ParkingID)}</td>
+          <td>${esc(booking.SlotID)}</td>
+          <td>${esc(booking.StartTime)}</td>
+          <td>${esc(booking.EndTime)}</td>
+          <td>
+            <span class="status ${esc(String(booking.Status || "confirmed").toLowerCase())}">
+              ${esc(booking.Status)}
+            </span>
+          </td>
+        </tr>`);
+
+    } catch (error) {
+      console.error("Load bookings error:", error);
+      toast("Could not load bookings.", "error");
+    }
+
+  }
+
+
+  /* ================= CHECK IN / OUT ================= */
+
+  function createCheckInOut(event) {
+    return withSubmitLock(event, async form => {
+
+      const data = {
+        BookingID: Number($("checkBookingID").value),
+        StartTime: Number($("checkStartTime").value),
+        EndTime: Number($("checkEndTime").value),
+        OverStay: Number($("overStay").value),
+        Penalty: Number($("penalty").value)
+      };
+
+      if (data.EndTime < data.StartTime) {
+        toast("End time cannot be earlier than start time.", "error");
+        return;
+      }
+
+      try {
+        await postJSON("/checkinout", data);
+        toast("Check In / Out saved successfully!", "success");
+        form.reset();
+      } catch (error) {
+        console.error(error);
+        toast(`Could not save Check In / Out. ${error.message}`, "error");
+      }
+
+    });
+  }
+
+
+  /* ================= DASHBOARD ================= */
+
+  async function loadDashboard() {
+
+    try {
+      // Both requests run at the same time instead of one after another
+      const [lots, slots] = await Promise.all([
+        api("/parkinglots"),
+        api("/slots")
+      ]);
+
+      $("totalLots").textContent = lots.length;
+      $("totalSlots").textContent = slots.length;
+
+      $("availableSlots").textContent =
+              slots.filter(slot => slot.Status === "AVAILABLE").length;
+
+      $("occupiedSlots").textContent =
+              slots.filter(slot => slot.Status === "OCCUPIED").length;
+
+    } catch (error) {
+      console.error("Dashboard error:", error);
+    }
+
+  }
+
+
+  /* ================= INITIAL LOAD ================= */
+
+  window.onload = function() {
+
+    loadDashboard();
+
+    loadParkingLots();
+
+    loadSlots();
+
+    loadBookings();
+
+  };
+
+</script>
+
+</body>
+</html>
